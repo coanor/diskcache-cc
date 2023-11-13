@@ -4,7 +4,7 @@ This is a rewrite implementation of exist [diskcache](https://github.com/GuanceC
 
 ## Status
 
-- [-] Defined basic class `disk_cache`
+- [x] Defined basic class `disk_cache`
 - [ ] Implementing various class methods 
 - [ ] Add basic unit test and reach coverage to %80+
 - [ ] Add Prometheus metrics
