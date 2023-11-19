@@ -4,6 +4,7 @@
 #include <algorithm>
 
 #include "disk_cache.hpp"
+#include "spdlog/spdlog.h"
 
 using namespace std;
 namespace fs=std::filesystem;
@@ -11,7 +12,7 @@ namespace fs=std::filesystem;
 error disk_cache::put(const char* data) {
 	lock_guard<mutex> guard(wlock);
 
-	auto dsize = sizeof(data);
+	auto dsize = strlen(data);
 
 	// check if beyond capacity.
 	if (capacity > 0 && (size + dsize > capacity)) {
@@ -21,33 +22,50 @@ error disk_cache::put(const char* data) {
 	}
 
 	// first open.
-	if (is == nullptr) {
-		auto x = fstream(cur_write, ios::in|ios::out|ios::binary);
-		is = &x;
+	if (!is.is_open()) {
+		spdlog::error("input stream not open, should not been here");
+		return error::write_failed;
 	}
-
-	// write header(4 bytes) and data.
-	is->write(reinterpret_cast<char*>(&dsize), sizeof dsize);
-	is->write(data, size);
 
 	// check write exceptions.
 	try {
-		is->exceptions(is->failbit);
+		// write header(4 bytes) and data.
+		char header[4];
+		header[0] = (dsize>>24)&0xFF;
+		header[1] = (dsize>>16)&0xFF;
+		header[2] = (dsize>>8)&0xFF;
+		header[3] = (dsize)&0xFF;
+
+		spdlog::debug("h[0] {0:x}", header[0]);
+		spdlog::debug("h[1] {0:x}", header[1]);
+		spdlog::debug("h[2] {0:x}", header[2]);
+		spdlog::debug("h[3] {0:x}", header[3]);
+
+		spdlog::debug("try put header({} => {}) to {}...", dsize, header, cur_write.string());
+		is.write(header, sizeof dsize);
+
+		spdlog::debug("try put {} bytes data to {}...", dsize, cur_write.string());
+		is.write(data, dsize);
+
+		spdlog::debug("put {} bytes data ok", dsize);
+		is.exceptions(is.failbit);
 	} catch(const ios_base::failure& e) {
 		return error::write_failed;	
 	}
 
 	if (!no_sync) {
-		if (is->sync() != 0) {
+		spdlog::debug("try sync...");
+		if (is.sync() != 0) {
 			return error::sync_failed;
 		}
 	}
 
 	// update info
-	cur_batch_size+=(dsize + 4);
+	_cur_batch_size+=(dsize + 4);
 	size += (dsize + 4);
 	time(&last_write); // remember last write time.
-	if (cur_batch_size >= batch_size) {
+	if (_cur_batch_size >= batch_size) {
+		spdlog::debug("try rotate, cur batch {}, batch size {}", _cur_batch_size, batch_size);
 		if (auto res = rotate(); res != error::ok) {
 			return res;
 		}
@@ -66,11 +84,11 @@ error disk_cache::rotate() {
 	// TODO: we should make eof_hint the class static const.
 	auto eof_hint = 0xdeadbeef;
 
-	is->write(reinterpret_cast<char*>(&eof_hint), sizeof(eof_hint));
+	is.write(reinterpret_cast<char*>(&eof_hint), sizeof(eof_hint));
 
 	// check write exceptions.
 	try {
-		is->exceptions(is->failbit);
+		is.exceptions(is.failbit);
 	} catch(const ios_base::failure& e) {
 		return error::write_failed;	
 	}
@@ -89,16 +107,15 @@ error disk_cache::rotate() {
 	auto fmt = "data.%032d";
 	auto sz = snprintf(nullptr, 0, fmt, idx);
 	vector<char> buf(sz+1); // +1 for null terminator
-	sprintf(buf.data(), fmt, idx);
+	snprintf(buf.data(), sizeof(buf), fmt, idx);
 
 	// comes new datafile
 	auto new_file = dir/fs::path(buf.data());
 
-	is->close();
-	if (is->is_open()) {
+	is.close();
+	if (is.is_open()) {
 		return error::is_close_failed;
 	}
-	is = nullptr;
 
 	// rename data -> data.000N
 	if (rename((dir/fs::path("data")).c_str(), new_file.c_str()) != 0) {

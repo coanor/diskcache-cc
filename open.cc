@@ -1,6 +1,9 @@
+#include <iostream>
 #include "disk_cache.hpp"
+#include "spdlog/spdlog.h"
 
 namespace fs = std::filesystem;
+using namespace std;
 
 error disk_cache::open() {
 	if (batch_size <= 0) {
@@ -13,10 +16,18 @@ error disk_cache::open() {
 
 	// create dir if not exist: should we use try/cache here?
 	if (!fs::exists(dir)) {
-		if (fs::create_directories(dir)) {
+		spdlog::debug("dir {} not exist, try create...", dir.string());
+		auto ec = std::error_code();
+		fs::create_directories(dir, ec);
+		if (ec.value() > 0) {
+			spdlog::error("dir {} create failed", dir.string());
 			return error::create_path_failed;
 		}
+	} else {
+		spdlog::debug("dir {} exist", dir.string());
 	}
+
+	cur_write= dir/fs::path("data");
 
 	if (!no_lock) {
 		// TODO: use file-locker to lock @dir
@@ -24,7 +35,10 @@ error disk_cache::open() {
 
 	if (!no_pos) {
 		// TODO: setup position of current cache
-		auto p = pos(0, dir / fs::path(".pos"));
+		auto p = pos{
+			.seek = 0,
+			.name = dir / fs::path(".pos"),
+		};
 		cur_pos = &p;
 	}
 
@@ -50,6 +64,21 @@ error disk_cache::open() {
 
 // open file "data" for writing.
 error disk_cache::open_write_file() {
+
+	is.open(cur_write,
+			std::ios_base::in |
+			std::ios_base::out |
+			std::ios_base::app |
+			std::ios_base::binary |
+			std::ios_base::ate
+			);
+
+	if (!is.is_open()) {
+		spdlog::error("open file {} for writing failed", cur_write.string());
+	} else {
+		spdlog::debug("open file {} for writing...", cur_write.string());
+	}
+
 	return error::ok;
 }
 

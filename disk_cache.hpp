@@ -16,13 +16,15 @@ typedef int(*get_callback)(const char* data);
 class disk_cache {
 public:
 	disk_cache(std::filesystem::path dir, long bsize, long cap)
-		: batch_size(bsize),capacity(cap) {
+		: dir(dir), batch_size(bsize), capacity(cap) {
 			no_sync = false;
 			max_data_size = 0;
 			wakeup = std::chrono::seconds(3);
 			cur_write = dir / std::filesystem::path("data");
 			dir_lock = nullptr;
 			cur_pos = nullptr;
+			_cur_batch_size = 0;
+			size = 0;
 		};
 
 	// TODO: should we define a copy constructor?
@@ -37,7 +39,13 @@ public:
 	void set_no_pos(bool on) { no_pos = on; }
 	void set_capacity(long cap) { capacity = cap; }
 
-	~disk_cache();
+	~disk_cache() {
+		// TODO
+	}
+
+	inline long cur_batch_size() const {
+		return _cur_batch_size;
+	}
 
 private:
 	error open_write_file();
@@ -47,11 +55,11 @@ private:
 
 private:
 	std::filesystem::path dir; // dir of all datafiles 
-	std::string cur_read;
-	std::string cur_write;
+	std::filesystem::path cur_read;
+	std::filesystem::path cur_write;
 
-	std::fstream* is;
-	std::fstream* os;
+	std::fstream is;
+	std::fstream os;
 	std::time_t last_write;
 	std::chrono::seconds wakeup;
 
@@ -59,17 +67,17 @@ private:
 	std::mutex rlock; // exclude read
 	std::mutex rwlock; // exclude switch/rotate/drop/Close
 			
-	flock *dir_lock;
+	_flock *dir_lock;
 	pos *cur_pos;
 
-	long size; // current byte size
-	long cur_batch_size; // current writing file's size
-	long batch_size; // current batch size(static)
-	long capacity; // capacity of the diskcache
+	unsigned long size; // current byte size
+	unsigned long _cur_batch_size; // current writing file's size
+	unsigned long batch_size; // current batch size(static)
+	unsigned long capacity; // capacity of the diskcache
 		  
 	std::vector<std::filesystem::path> data_files;
 
-	int max_data_size; // max data size of single Put()
+	unsigned int max_data_size; // max data size of single Put()
 
 	bool no_sync; // NoSync if enabled, may cause data missing, default false
 	bool no_fallback_on_error; // ignore Fn() error
