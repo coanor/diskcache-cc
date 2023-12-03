@@ -64,7 +64,6 @@ error disk_cache::open() {
 
 // open file "data" for writing.
 error disk_cache::open_write_file() {
-
 	is.open(cur_write,
 			std::ios_base::in |
 			std::ios_base::out |
@@ -74,9 +73,7 @@ error disk_cache::open_write_file() {
 			);
 
 	if (!is.is_open()) {
-		spdlog::error("open file {} for writing failed", cur_write.string());
-	} else {
-		spdlog::debug("open file {} for writing...", cur_write.string());
+		return error::open_file_failed;
 	}
 
 	return error::ok;
