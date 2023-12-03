@@ -105,7 +105,7 @@ error disk_cache::rotate() {
 		return error::write_failed;	
 	}
 
-	auto idx = next_datafile_name(_data_files);
+	auto idx = next_datafile_idx(_data_files);
 
 	// comes new datafile
 	auto basename = fmt::format("data.{}", idx);
@@ -128,7 +128,7 @@ error disk_cache::rotate() {
 	return open_write_file();
 }
 
-int disk_cache::next_datafile_name(vector<fs::path> files)  const {
+int disk_cache::next_datafile_idx(vector<fs::path> files)  const {
 	auto idx = 0;
 	auto dfiles = files.size();
 

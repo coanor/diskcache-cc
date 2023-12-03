@@ -54,7 +54,7 @@ public:
 		return _size;
 	}
 
-	int next_datafile_name(std::vector<std::filesystem::path>) const;
+	int next_datafile_idx(std::vector<std::filesystem::path>) const;
 
 public:
 	static constexpr int eof_hint = 0xdeadbeef;

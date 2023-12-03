@@ -53,7 +53,7 @@ namespace {
 		EXPECT_EQ((len+4)*2+sizeof(disk_cache::eof_hint), fs::file_size(first_file));
 	}
 
-	TEST(diskcache, next_datafile_name) {
+	TEST(diskcache, next_datafile_idx) {
 		l::set_level(l::level::debug);
 		l::set_pattern("[%H:%M:%S %z] [lvl: %L] [src: %s:%#] %v");
 		auto tmpp = fs::temp_directory_path();
@@ -68,7 +68,7 @@ namespace {
 			fs::path("data.003"),
 		};
 
-		auto idx = dc.next_datafile_name(files);
+		auto idx = dc.next_datafile_idx(files);
 		EXPECT_EQ(4, idx);
 	}
 
