@@ -40,9 +40,7 @@ public:
 	inline void set_no_pos(bool on) { no_pos = on; }
 	inline void set_capacity(long cap) { capacity = cap; }
 	inline int fifo_dropped() const { return _fifo_dropped; };
-	inline std::vector<std::filesystem::path> data_files() {
-		return _data_files;
-	}
+	inline std::vector<std::filesystem::path> data_files() const { return _data_files; }
 
 	~disk_cache() {
 		// TODO
