@@ -7,4 +7,5 @@ enum class error {
 	is_close_failed,
 	rename_failed,
 	close_file_failed,
+	open_file_failed,
 };
