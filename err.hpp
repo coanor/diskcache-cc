@@ -6,4 +6,5 @@ enum class error {
 	sync_failed,
 	is_close_failed,
 	rename_failed,
+	close_file_failed,
 };

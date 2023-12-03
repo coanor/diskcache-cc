@@ -10,6 +10,7 @@ using namespace std;
 namespace fs=std::filesystem;
 
 error disk_cache::put(const char* data) {
+
 	lock_guard<mutex> guard(wlock);
 
 	auto dsize = strlen(data);
@@ -19,7 +20,9 @@ error disk_cache::put(const char* data) {
 		if (auto res = fifo_drop(); res != error::ok) {
 			return res;
 		}
+		_fifo_dropped++;
 	}
+
 
 	// first open.
 	if (!is.is_open()) {
@@ -35,11 +38,6 @@ error disk_cache::put(const char* data) {
 		header[1] = (dsize>>16)&0xFF;
 		header[2] = (dsize>>8)&0xFF;
 		header[3] = (dsize)&0xFF;
-
-		spdlog::debug("h[0] {0:x}", header[0]);
-		spdlog::debug("h[1] {0:x}", header[1]);
-		spdlog::debug("h[2] {0:x}", header[2]);
-		spdlog::debug("h[3] {0:x}", header[3]);
 
 		spdlog::debug("try put header({} => {}) to {}...", dsize, header, cur_write.string());
 		is.write(header, sizeof dsize);
@@ -75,16 +73,34 @@ error disk_cache::put(const char* data) {
 }
 
 error disk_cache::fifo_drop() {
+
+	spdlog::debug("try fifo drop...");
+
+	lock_guard<mutex> guard(this->rwlock);
+	if (data_files.size() == 0) {
+		return error::ok;
+	}
+
+	auto fname = data_files.front();
+	// reset current reading file
+	if (os.is_open() && cur_read == fname) {
+		os.close();
+		if (os.is_open()) {
+			return error::close_file_failed;
+		}
+	}
+
+	size -= fs::file_size(fname);
+	data_files.erase(data_files.begin());
+	remove(fname);
+
 	return error::ok;
 }
 
 error disk_cache::rotate() {
 	lock_guard<mutex> guard(rwlock);
 
-	// TODO: we should make eof_hint the class static const.
-	auto eof_hint = 0xdeadbeef;
-
-	is.write(reinterpret_cast<char*>(&eof_hint), sizeof(eof_hint));
+	is.write(reinterpret_cast<const char*>(&eof_hint), sizeof(eof_hint));
 
 	// check write exceptions.
 	try {

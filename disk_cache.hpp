@@ -24,6 +24,7 @@ public:
 			dir_lock = nullptr;
 			cur_pos = nullptr;
 			_cur_batch_size = 0;
+			_fifo_dropped = 0;
 			size = 0;
 		};
 
@@ -35,9 +36,10 @@ public:
 	error get(get_callback* callback);
 	error rotate();
 
-	void set_no_lock(bool on) { no_lock = on; }
-	void set_no_pos(bool on) { no_pos = on; }
-	void set_capacity(long cap) { capacity = cap; }
+	inline void set_no_lock(bool on) { no_lock = on; }
+	inline void set_no_pos(bool on) { no_pos = on; }
+	inline void set_capacity(long cap) { capacity = cap; }
+	//inline int fifo_dropped() { return _fifo_dropped; };
 
 	~disk_cache() {
 		// TODO
@@ -54,6 +56,11 @@ private:
 	error fifo_drop();
 
 private:
+
+	static constexpr int eof_hint = 0xdeadbeef;
+
+	int _fifo_dropped;
+
 	std::filesystem::path dir; // dir of all datafiles 
 	std::filesystem::path cur_read;
 	std::filesystem::path cur_write;

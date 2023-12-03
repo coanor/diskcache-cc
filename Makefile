@@ -27,10 +27,13 @@ put.o: put.cc
 clean:
 	@rm -rf *.o *.a *.gch $(TARGET)
 
-open_ut.o: $(USER_DIR)/open_ut.cc $(GTEST_HEADERS)
-	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(USER_DIR)/open_ut.cc
+t_open.o: $(USER_DIR)/t_open.cc $(GTEST_HEADERS)
+	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(USER_DIR)/t_open.cc
 
-T: open_ut.o gtest_main.a open.o put.o
+t_put.o: $(USER_DIR)/t_put.cc $(GTEST_HEADERS)
+	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(USER_DIR)/t_put.cc
+
+T: t_open.o t_put.o gtest_main.a open.o put.o
 	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -lpthread $^ -o $@
 
 ############################################################
