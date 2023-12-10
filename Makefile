@@ -24,8 +24,14 @@ open.o: open.cc
 put.o: put.cc
 	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
+get.o: get.cc
+	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+
+pos.o: pos.cc
+	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+
 clean:
-	@rm -rf *.o *.a *.gch $(TARGET)
+	@rm -rf *.o *.gch $(TARGET)
 
 t_open.o: $(USER_DIR)/t_open.cc $(GTEST_HEADERS)
 	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(USER_DIR)/t_open.cc
@@ -33,7 +39,10 @@ t_open.o: $(USER_DIR)/t_open.cc $(GTEST_HEADERS)
 t_put.o: $(USER_DIR)/t_put.cc $(GTEST_HEADERS)
 	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(USER_DIR)/t_put.cc
 
-T: t_open.o t_put.o gtest_main.a open.o put.o
+t_get.o: $(USER_DIR)/t_get.cc $(GTEST_HEADERS)
+	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(USER_DIR)/t_get.cc
+
+T: t_open.o t_put.o t_get.o gtest_main.a open.o put.o get.o pos.o
 	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -lpthread $^ -o $@
 
 ############################################################
@@ -61,3 +70,9 @@ gtest_main.a : gtest-all.o gtest_main.o
 ############################################################
 # spdlog related(TODO)
 ############################################################
+
+############################################################
+# ctags
+############################################################
+ctags:
+	ctags -R --c++-kinds=+p --fields=+iaS --extra=+q --language-force=C++

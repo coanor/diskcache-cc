@@ -11,7 +11,10 @@
 #include "pos.hpp"
 #include "err.hpp"
 
-typedef int(*get_callback)(const char* data); 
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
+#include "spdlog/spdlog.h"
+
+typedef error (*get_callback)(std::vector<char> &data, int n); 
 
 class disk_cache {
 public:
@@ -33,7 +36,7 @@ public:
 	error open();
 	error close();
 	error put(const char* data);
-	error get(get_callback* callback);
+	error get(get_callback callback);
 	error rotate();
 
 	inline void set_no_lock(bool on) { no_lock = on; }
@@ -56,23 +59,44 @@ public:
 
 	int next_datafile_idx(std::vector<std::filesystem::path>) const;
 
+	// convert 4 bytes header to int.
+	inline unsigned int header_n(std::array<char, 4> arr) const {
+		return int(static_cast<unsigned char>(arr[0]) << 24 |
+               static_cast<unsigned char>(arr[1]) << 16 |
+               static_cast<unsigned char>(arr[2]) << 8 |
+               static_cast<unsigned char>(arr[3]));
+	}
+
+	// convert int to 4 bytes header.
+	inline auto header_bytes(unsigned int n) const {
+		std::array<char, 4> res;
+		res[3] = n & 0x000000ff;
+		res[2] = (n & 0x0000ff00)>> 8;
+		res[1] = (n & 0x00ff0000)>> 16;
+		res[0] = (n & 0xff000000)>> 24;
+		return res;
+	}
+
 public:
-	static constexpr int eof_hint = 0xdeadbeef;
+	static constexpr unsigned int eof_hint = 0xdeadbeef;
 
 private:
 	error open_write_file();
 	error load_exist_files();
 	error seek_to_last_read();
 	error fifo_drop();
+	error switch_next_file();
+	error remove_cur_reading_file();
 
 private:
 
+	char *read_buf;
 	std::filesystem::path dir; // dir of all datafiles 
 	std::filesystem::path cur_read;
 	std::filesystem::path cur_write;
 
-	std::fstream is;
-	std::fstream os;
+	std::ifstream gets;
+	std::ofstream puts;
 	std::time_t last_write;
 	std::chrono::seconds wakeup;
 

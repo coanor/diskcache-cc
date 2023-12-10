@@ -24,42 +24,32 @@ error disk_cache::put(const char* data) {
 	}
 
 	// first open.
-	if (!is.is_open()) {
-		spdlog::error("input stream not open, should not been here");
+	if (!puts.is_open()) {
+		SPDLOG_ERROR("input stream not open, should not been here");
 		return error::write_failed;
 	}
 
-	// write header(4 bytes) and data.
-	char header[4];
-
 	// check write exceptions.
+	auto hdr = header_bytes(dsize);
 	try {
-		header[0] = (dsize>>24)&0xFF;
-		header[1] = (dsize>>16)&0xFF;
-		header[2] = (dsize>>8)&0xFF;
-		header[3] = (dsize)&0xFF;
+		puts.write(hdr.data(), hdr.size());
+		puts.write(data, dsize);
 
-		is.write(header, sizeof(header));
+		if (!no_sync) {
+			puts.flush();
+		}
 
-		is.write(data, dsize);
-
-		is.exceptions(is.failbit);
+		puts.exceptions(puts.failbit);
 	} catch(const ios_base::failure& e) {
 		return error::write_failed;	
 	}
 
-	if (!no_sync) {
-		if (is.sync() != 0) {
-			return error::sync_failed;
-		}
-	}
-
 	// update info
-	_cur_batch_size+=(dsize + sizeof(header));
-	_size += (dsize + sizeof(header));
+	_cur_batch_size+=(dsize + hdr.size());
+	_size += (dsize + hdr.size());
 	time(&last_write); // remember last write time.
 	if (_cur_batch_size >= batch_size) {
-		spdlog::debug("try rotate, cur batch {}, batch size {}", _cur_batch_size, batch_size);
+		SPDLOG_DEBUG("try rotate, cur batch {}, batch size {}", _cur_batch_size, batch_size);
 		if (auto res = rotate(); res != error::ok) {
 			return res;
 		}
@@ -77,9 +67,9 @@ error disk_cache::fifo_drop() {
 
 	auto fname = _data_files.front();
 	// reset current reading file
-	if (os.is_open() && cur_read == fname) {
-		os.close();
-		if (os.is_open()) {
+	if (puts.is_open() && cur_read == fname) {
+		puts.close();
+		if (puts.is_open()) {
 			return error::close_file_failed;
 		}
 	}
@@ -87,7 +77,7 @@ error disk_cache::fifo_drop() {
 	_size -= fs::file_size(fname);
 	_data_files.erase(_data_files.begin());
 
-	spdlog::debug("try fifo drop {}...", fname.string());
+	SPDLOG_DEBUG("try fifo drop {}...", fname.string());
 	remove(fname);
 
 	return error::ok;
@@ -95,12 +85,12 @@ error disk_cache::fifo_drop() {
 
 error disk_cache::rotate() {
 	lock_guard<mutex> guard(rwlock);
-
-	is.write(reinterpret_cast<const char*>(&eof_hint), sizeof(eof_hint));
+	auto hdr = header_bytes(eof_hint);
 
 	// check write exceptions.
 	try {
-		is.exceptions(is.failbit);
+		puts.write(hdr.data(), hdr.size());
+		puts.exceptions(puts.failbit);
 	} catch(const ios_base::failure& e) {
 		return error::write_failed;	
 	}
@@ -111,8 +101,8 @@ error disk_cache::rotate() {
 	auto basename = fmt::format("data.{}", idx);
 	auto new_file = dir/fs::path(basename);
 
-	is.close();
-	if (is.is_open()) {
+	puts.close();
+	if (puts.is_open()) {
 		return error::is_close_failed;
 	}
 
@@ -123,7 +113,7 @@ error disk_cache::rotate() {
 
 	// add new datafile
 	_data_files.push_back(new_file);
-	spdlog::debug("add datafile {}, datafiles {}...", new_file.string(), _data_files.size());
+	SPDLOG_DEBUG("add datafile {}, datafiles {}", new_file.string(), _data_files.size());
 
 	return open_write_file();
 }
@@ -142,7 +132,7 @@ int disk_cache::next_datafile_idx(vector<fs::path> files)  const {
 				idx = last_idx + 1;
 			}
 
-			spdlog::debug("last {}, ext {}, idx {}...", last.string(), ext, idx);
+			SPDLOG_DEBUG("last {}, ext {}, idx {}...", last.string(), ext, idx);
 		}
 	}
 

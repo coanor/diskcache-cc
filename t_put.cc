@@ -28,21 +28,19 @@ namespace {
 
 	TEST(diskcache, put) {
 		l::set_level(l::level::debug);
-		l::set_pattern("[%H:%M:%S %z] [lvl: %L] [src: %s:%#] %v");
-		//auto tmpp = fs::temp_directory_path();
-		auto tmpp = fs::path("put");
+		auto tmpp = fs::temp_directory_path();
 
-		l::debug("temp dir: {}", tmpp.string());
+		SPDLOG_DEBUG("temp dir: {}", tmpp.string());
 
 		auto dc = disk_cache(tmpp, 0, 0);
 		EXPECT_EQ(error::ok, dc.open());
 
-		l::debug("open diskcache ok");
+		SPDLOG_DEBUG("open diskcache ok");
 
 		auto len = 8;
 		auto some_data = gen_random(len);
 
-		l::debug("try put data...");
+		SPDLOG_DEBUG("try put data...");
 		EXPECT_EQ(error::ok, dc.put(some_data.c_str()));
 		EXPECT_EQ(error::ok, dc.put(some_data.c_str()));
 
@@ -55,10 +53,9 @@ namespace {
 
 	TEST(diskcache, next_datafile_idx) {
 		l::set_level(l::level::debug);
-		l::set_pattern("[%H:%M:%S %z] [lvl: %L] [src: %s:%#] %v");
 		auto tmpp = fs::temp_directory_path();
 
-		l::debug("temp dir: {}", tmpp.string());
+		SPDLOG_DEBUG("temp dir: {}", tmpp.string());
 		auto dc = disk_cache(tmpp, 0, 0);
 		EXPECT_EQ(error::ok, dc.open());
 
@@ -74,10 +71,9 @@ namespace {
 
 	TEST(diskcache, fifo_on_put) {
 		l::set_level(l::level::debug);
-		l::set_pattern("[%H:%M:%S %z] [lvl: %L] [src: %s:%#] %v");
 		auto tmpp = fs::temp_directory_path();
 
-		l::debug("temp dir: {}", tmpp.string());
+		SPDLOG_DEBUG("temp dir: {}", tmpp.string());
 
 		auto total = 0;
 		auto mb = 1<<20;
@@ -99,11 +95,11 @@ namespace {
 
 		EXPECT_EQ(error::ok, dc.rotate());
 
-		l::debug("total put: {}", total);
-		l::debug("fifo dropped: {}, size: {}", dc.fifo_dropped(), dc.size());
+		SPDLOG_DEBUG("total put: {}", total);
+		SPDLOG_DEBUG("fifo dropped: {}, size: {}", dc.fifo_dropped(), dc.size());
 
 		for (auto n: dc.data_files()) {
-			l::debug("datafile {}", n.string());
+			SPDLOG_DEBUG("datafile {}", n.string());
 		}
 
 		EXPECT_EQ(cap/mb, dc.data_files().size());

@@ -16,18 +16,19 @@ error disk_cache::open() {
 
 	// create dir if not exist: should we use try/cache here?
 	if (!fs::exists(dir)) {
-		spdlog::debug("dir {} not exist, try create...", dir.string());
+		SPDLOG_DEBUG("dir {} not exist, try create...", dir.string());
 		auto ec = std::error_code();
 		fs::create_directories(dir, ec);
 		if (ec.value() > 0) {
-			spdlog::error("dir {} create failed", dir.string());
+			SPDLOG_ERROR("dir {} create failed", dir.string());
 			return error::create_path_failed;
 		}
 	} else {
-		spdlog::debug("dir {} exist", dir.string());
+		SPDLOG_DEBUG("dir {} exist", dir.string());
 	}
 
 	cur_write= dir/fs::path("data");
+	SPDLOG_DEBUG("current write at {}", cur_write.string());
 
 	if (!no_lock) {
 		// TODO: use file-locker to lock @dir
@@ -44,9 +45,12 @@ error disk_cache::open() {
 
 	// TODO: read envs to adjust parameters...
 	
+	SPDLOG_DEBUG("try open {} on {}...", cur_write.string(), fmt::ptr(&puts));
 	if (auto res = open_write_file(); res != error::ok) {
 		return res;
 	}
+
+	SPDLOG_DEBUG("open ok");
 
 	if (auto res = load_exist_files(); res != error::ok) {
 		return res;
@@ -64,15 +68,14 @@ error disk_cache::open() {
 
 // open file "data" for writing.
 error disk_cache::open_write_file() {
-	is.open(cur_write,
-			std::ios_base::in |
-			std::ios_base::out |
+	puts.open(cur_write,
+			std::ios_base::out | // input only
 			std::ios_base::app |
 			std::ios_base::binary |
 			std::ios_base::ate
 			);
 
-	if (!is.is_open()) {
+	if (!puts.is_open()) {
 		return error::open_file_failed;
 	}
 
