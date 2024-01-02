@@ -42,26 +42,38 @@ namespace {
 
 		EXPECT_EQ(2, dc.data_files().size());
 
-		EXPECT_EQ(error::ok, dc.get([](std::vector<char> &data, int n) -> error {
-					auto expect = "sample data";
+		EXPECT_EQ(error::ok, dc.get([&](std::vector<char> &data, int n) -> error {
 					SPDLOG_DEBUG("get {} bytes: {}", n, data.data());
-					EXPECT_STREQ(expect, data.data());
-					EXPECT_EQ(std::strlen(expect), n);
+					EXPECT_STREQ(d1.data(), data.data());
+					EXPECT_EQ(d1.length(), n);
 					return error::ok;
 					}));
 
-		EXPECT_EQ(error::ok, dc.get([](std::vector<char> &data, int n) -> error {
-					auto expect = "sample data with long suffix 111111111111111111111111";
-					SPDLOG_DEBUG("get {} bytes: {}", n, data.data());
-					EXPECT_STREQ(expect, data.data());
-					EXPECT_EQ(std::strlen(expect), n);
-					return error::ok;
-					}));
+		EXPECT_EQ(error::ok, dc.get([&](std::vector<char> &data, int n) -> error {
+			SPDLOG_DEBUG("get {} bytes: {}", n, data.data());
+			EXPECT_STREQ(d2.data(), data.data());
+			EXPECT_EQ(d2.length(), n);
+			return error::ok;
+		}));
 
-		EXPECT_EQ(error::ok, dc.get([](std::vector<char> &data, int n) -> error {
+		EXPECT_EQ(error::ok, dc.get([](std::vector<char>&, int) -> error {
 					EXPECT_EQ(0, 1); // should not been here
 					return error::ok;
 					}));
+
+		SPDLOG_DEBUG("get without callback, current batch size: {}", dc.cur_batch_size());
+		EXPECT_EQ(error::ok, dc.put(d1.c_str())); // put another data
+		EXPECT_EQ(error::ok, dc.put(d2.c_str())); // put another data
+		EXPECT_EQ(error::ok, dc.put(d1.c_str())); // put another data
+		EXPECT_EQ(error::ok, dc.put(d2.c_str())); // put another data
+		EXPECT_EQ(error::ok, dc.rotate());
+
+		EXPECT_EQ(error::ok, dc.get([&d1](std::vector<char> &data, int n) -> error {
+			SPDLOG_DEBUG("get {} bytes: {}", n, data.data());
+			EXPECT_STREQ(d1.data(), data.data());
+			EXPECT_EQ(d1.length(), n);
+			return error::ok;
+					})); // get without callback
 	}
 
 	TEST(diskcache, get) {
@@ -83,19 +95,17 @@ namespace {
 
 		SPDLOG_DEBUG("rotate ok");
 
-		EXPECT_EQ(error::ok, dc.get([](std::vector<char> &data, int n) -> error {
-					auto expect = "sample data";
+		EXPECT_EQ(error::ok, dc.get([&](std::vector<char> &data, int n) -> error {
 					SPDLOG_DEBUG("get {} bytes: {}", n, data.data());
-					EXPECT_STREQ(expect, data.data());
-					EXPECT_EQ(std::strlen(expect), n);
+					EXPECT_STREQ(d1.data(), data.data());
+					EXPECT_EQ(d1.length(), n);
 					return error::ok;
 					}));
 
-		EXPECT_EQ(error::ok, dc.get([](std::vector<char> &data, int n) -> error {
-					auto expect = "sample data with long suffix 111111111111111111111111";
+		EXPECT_EQ(error::ok, dc.get([&](std::vector<char> &data, int n) -> error {
 					SPDLOG_DEBUG("get {} bytes: {}", n, data.data());
-					EXPECT_STREQ(expect, data.data());
-					EXPECT_EQ(std::strlen(expect), n);
+					EXPECT_STREQ(d2.data(), data.data());
+					EXPECT_EQ(d2.length(), n);
 					return error::ok;
 					}));
 	}

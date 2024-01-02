@@ -79,6 +79,8 @@ error disk_cache::open_write_file() {
 		return error::open_file_failed;
 	}
 
+	_cur_batch_size = 0;
+
 	return error::ok;
 }
 

@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <fstream>
 #include <vector>
+#include <functional>
 
 #include "flock.hpp"
 #include "pos.hpp"
@@ -14,7 +15,7 @@
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
 #include "spdlog/spdlog.h"
 
-typedef error (*get_callback)(std::vector<char> &data, int n); 
+//typedef error (*get_callback)(std::vector<char> &data, int n); 
 
 class disk_cache {
 public:
@@ -36,7 +37,7 @@ public:
 	error open();
 	error close();
 	error put(const char* data);
-	error get(get_callback callback);
+	error get(std::function<error(std::vector<char> &data, int n)> func);
 	error rotate();
 
 	inline void set_no_lock(bool on) { no_lock = on; }
@@ -110,7 +111,7 @@ private:
 	int _fifo_dropped;
 	unsigned long _size; // current byte size
 	unsigned long _cur_batch_size; // current writing file's size
-	unsigned long batch_size; // current batch size(static)
+	unsigned long batch_size; // batch size(static)
 	unsigned long capacity; // capacity of the diskcache
 		  
 	std::vector<std::filesystem::path> _data_files;

@@ -56,6 +56,7 @@ error disk_cache::put(const char* data) {
 		_cur_batch_size = 0; // reset
 	}
 
+	SPDLOG_DEBUG("put {} bytes ok, batch size {}", dsize, _cur_batch_size);
 	return error::ok;
 }
 
@@ -103,7 +104,7 @@ error disk_cache::rotate() {
 
 	puts.close();
 	if (puts.is_open()) {
-		return error::is_close_failed;
+		return error::put_close_failed;
 	}
 
 	// rename data -> data.N
@@ -113,7 +114,7 @@ error disk_cache::rotate() {
 
 	// add new datafile
 	_data_files.push_back(new_file);
-	SPDLOG_DEBUG("add datafile {}, datafiles {}", new_file.string(), _data_files.size());
+	SPDLOG_DEBUG("rotate add datafile {}, datafiles {}", new_file.string(), _data_files.size());
 
 	return open_write_file();
 }

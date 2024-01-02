@@ -1,3 +1,5 @@
+.PHONY: clean
+
 # examples fome https://stackoverflow.com/a/32168987/342348
 TARGET = lib.a
 

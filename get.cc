@@ -8,7 +8,7 @@
 using namespace std;
 namespace fs=std::filesystem;
 
-error disk_cache::get(get_callback callback) {
+error disk_cache::get(function<error (vector<char> &data, int n)> callback) {
 	lock_guard<mutex> guard(rlock);
 
 	auto diff = chrono::system_clock::now() -
@@ -18,6 +18,7 @@ error disk_cache::get(get_callback callback) {
 	}
 
 	if (!gets.is_open()) {
+		SPDLOG_DEBUG("gets not open, switch next file...");
 		if (auto res = switch_next_file(); res != error::ok) {
 			return res;
 		}
@@ -45,6 +46,7 @@ retry:
 		if (auto res = switch_next_file(); res != error::ok) {
 			return res;
 		}
+		//SPDLOG_DEBUG("on eof hint, switch next file...");
 		goto retry;
 	}
 
@@ -67,7 +69,10 @@ retry:
 		SPDLOG_DEBUG("pass {} bytes({}) to callback", dsize, data.data());
 		if (auto res = callback(data, dsize); res != error::ok) {
 			// TODO: seek back to re-read for the next time...
+			return res;
 		}
+	} else {
+		SPDLOG_DEBUG("no callback on {} bytes", dsize);
 	}
 
 	if (!no_pos) {
@@ -91,7 +96,7 @@ error disk_cache::remove_cur_reading_file() {
 		gets.close();
 
 		if (gets.is_open()) {
-			return error::is_close_failed;
+			return error::get_close_failed;
 		}
 
 		// TODO: adjust size
