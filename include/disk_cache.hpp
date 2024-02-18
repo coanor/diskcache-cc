@@ -61,7 +61,7 @@ public:
 	int next_datafile_idx(std::vector<std::filesystem::path>) const;
 
 	// convert 4 bytes header to int.
-	inline unsigned int header_n(std::array<char, 4> arr) const {
+	static inline unsigned int header_n(std::array<char, 4> arr) {
 		return int(static_cast<unsigned char>(arr[0]) << 24 |
                static_cast<unsigned char>(arr[1]) << 16 |
                static_cast<unsigned char>(arr[2]) << 8 |
@@ -69,7 +69,7 @@ public:
 	}
 
 	// convert int to 4 bytes header.
-	inline auto header_bytes(unsigned int n) const {
+	static inline auto header_bytes(unsigned int n) {
 		std::array<char, 4> res;
 		res[3] = n & 0x000000ff;
 		res[2] = (n & 0x0000ff00)>> 8;

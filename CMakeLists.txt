@@ -37,7 +37,7 @@ install(FILES ${CMAKE_BINARY_DIR}/diskcache-cc.pc DESTINATION ${CMAKE_INSTALL_DA
 # Testing
 # refer to http://google.github.io/googletest/quickstart-cmake.html
 enable_testing()
-add_executable(T tests/t_get.cc tests/t_put.cc tests/t_open.cc)
+add_executable(T tests/get.cc tests/put.cc tests/open.cc)
 target_link_libraries(T GTest::gtest_main diskcache-cc)
 include(GoogleTest)
 gtest_discover_tests(T)

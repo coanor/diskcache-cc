@@ -21,6 +21,18 @@ namespace {
 		SPDLOG_DEBUG("len: {0:x}, eof_hint: {1:x}", len, dc.eof_hint);
 	}
 
+	TEST(diskcache, header_n_memcpy) {
+
+		spdlog::set_level(spdlog::level::debug);
+		auto arr = disk_cache::header_bytes(disk_cache::eof_hint);
+		auto len = disk_cache::header_n(arr);
+
+		SPDLOG_DEBUG("arr: {}", spdlog::to_hex(arr));
+		SPDLOG_DEBUG("len: {0:x}, eof_hint: {1:x}", len, disk_cache::eof_hint);
+
+		EXPECT_EQ(len, disk_cache::eof_hint);
+	}
+
 	TEST(diskcache, get_and_switch) {
 		spdlog::set_level(spdlog::level::debug);
 
